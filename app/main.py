@@ -1,7 +1,9 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 import redis
 from app.schema import CreateInput
-
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.model import Payloads
 
 app = FastAPI()
 rd = redis.Redis(host="localhost", port=6379, db=0)
@@ -13,16 +15,27 @@ def home():
 
 
 @app.post("/payload")
-def create_new_payload(payload: CreateInput):
-    merging_element = []
-    if len(payload.list_1) != len(payload.list_2):
+def create_new_payload(
+    payloads: CreateInput,
+    db: Session = Depends(
+        get_db,
+    ),
+):
+    interleaving_list = []
+    if len(payloads.list_1) != len(payloads.list_2):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Payload length is not equal",
         )
 
-    for element in zip(payload.list_1, payload.list_2):
+    for element in zip(payloads.list_1, payloads.list_2):
         for item in element:
-            merging_element.append(item.upper())
+            interleaving_list.append(item.upper())
+    output = ", ".join(interleaving_list)
 
-    print(merging_element)
+    payloads_data = Payloads(payload=output)
+
+    db.add(payloads_data)
+    db.commit()
+    db.refresh(payloads_data)
+    return {"output": payloads_data}
