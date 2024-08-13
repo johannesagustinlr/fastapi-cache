@@ -1,6 +1,5 @@
 # fastapi-cache
 
-### Source
 
 ```bash
 git clone git@github.com:johannesagustinlr/fastapi-cache.git
